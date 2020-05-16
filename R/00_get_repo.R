@@ -2,9 +2,17 @@
 # its files as a tibble. The file content is read in as text. Note that this 
 # means not all files will be valid text input. For example if the repo contains
 # an image or some other binary data, processing it as text can cause a crash.
-# A mitigation I've made is to parse the file extensions as a variable. If an 
-# extension indicates that the file isn't text, you can omit it. No guarantees
-# that will work 100% though. 
+# I've made two mitigations: 
+# (a) parse file extensions as a variable for filtering
+# (b) added a flag for valid UTF-8 text
+#
+# (a) requires knowlede and manual filtering
+# (b) could fail because you could have valid text that just needs to be
+# converted to UTF-8 using str_conv. Also note that if you use use str_conv on
+# not valid text (e.g. from a png) validUTF8() will say that the result is 
+# valid text. But parsing it as text (e.g. tokenization) may result in a crash 
+# or error.
+
 
 library(tidyverse)
 
@@ -73,18 +81,17 @@ get_repo <- function(url_to_zip) {
   
   file_list <- 
     file_list %>%
-    mutate(name = Name, 
-           file_ext = file_ext,
-           size_bytes = Length,
+    mutate(
            link_to_repo = url_to_zip,
-           date_downloaded = Date,
-           text = text) %>%
+           valid_utf8 = validUTF8(text)
+           ) %>%
     select(
-      name,
+      name = Name,
+      valid_utf8,
       file_ext,
-      size_bytes,
+      size_bytes = Length,
       link_to_repo,
-      date_downloaded,
+      date_downloaded = Date,
       text
     )
 
